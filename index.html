@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GoLaundry - Customer</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        :root { --primary: #0ea5e9; --bg: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); padding-bottom: 80px; margin: 0; }
+        
+        .page { display: none; min-height: 100vh; }
+        .page.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .grid-laundry { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        .laundry-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; transition: 0.2s; cursor: pointer; }
+        .laundry-card:active { transform: scale(0.96); }
+
+        .service-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; z-index: 2000; }
+        .service-content { background: white; width: 100%; border-radius: 30px 30px 0 0; padding: 25px; max-height: 90vh; overflow-y: auto; }
+        
+        .service-item { border: 2px solid #e2e8f0; border-radius: 15px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+        .service-item:hover { border-color: var(--primary); }
+
+        .card-order { background: white; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
+        
+        .top-bar { background: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
+        .user-loc-box { background: #f0f9ff; padding: 10px 15px; border-radius: 12px; margin: 15px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #0369a1; }
+
+        .est-box { background: #f8fafc; padding: 15px; border-radius: 15px; margin-top: 15px; border: 1px solid #e2e8f0; }
+        .payment-option { flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; border: 1px solid #e2e8f0; }
+        .payment-option.active { background: #f0f9ff; border-color: #0ea5e9; color: #0ea5e9; }
+        .payment-option.disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <main id="page-home" class="page active">
+        <div class="top-bar">
+            <div>
+                <p style="margin:0; font-size:12px; color:#64748b;">Lokasi Anda</p>
+                <strong id="displayAddress" style="font-size:14px;">Mencari lokasi...</strong>
+            </div>
+            <div style="width:40px; height:40px; background:#0ea5e9; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;" id="userInitialIcon">U</div>
+        </div>
+
+        <div class="user-loc-box" onclick="switchPage('profile', document.querySelectorAll('.nav-item')[2])">
+            <i data-lucide="map-pin" style="width:16px;"></i>
+            <span id="locStatusBar">Pastikan titik jemput sudah diset di Profil</span>
+        </div>
+
+        <div style="padding: 0 20px;">
+            <h3>Laundry Terdekat</h3>
+        </div>
+        <div id="laundryGrid" class="grid-laundry"></div>
+    </main>
+
+    <main id="page-orders" class="page">
+        <div style="padding: 20px;">
+            <h3>Pesanan Saya</h3>
+            <div id="orderList"></div>
+        </div>
+    </main>
+
+    <main id="page-profile" class="page">
+        <div style="padding: 20px;">
+            <div class="card" style="background: white; padding: 25px; border-radius: 20px; text-align: center; border: 1px solid #e2e8f0;">
+                <div id="userInitialLarge" style="width: 80px; height: 80px; background: #0ea5e9; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 32px; font-weight: 800;">U</div>
+                <h3 id="profileName" style="margin: 0;">Memuat...</h3>
+                <p id="profilePhone" style="color: #64748b; font-size: 14px; margin-bottom: 20px;"></p>
+                
+                <div id="locStatusBox" style="margin-bottom: 15px; padding: 15px; border-radius: 15px; background: #f8fafc; border: 1px dashed #cbd5e1;">
+                    <i data-lucide="map-pin" style="width: 20px; color: #ef4444; margin-bottom: 5px;"></i>
+                    <div id="locText" style="font-size: 12px; font-weight: 600;">Titik jemput belum diset</div>
+                    <small style="color: #94a3b8; font-size: 10px;">Driver butuh GPS anda agar akurat</small>
+                </div>
+
+                <button onclick="updateUserLocation()" class="btn-primary" style="width: 100%; background: #10b981; border: none; padding: 12px; border-radius: 12px; color: white; font-weight: 700;">
+                    Update Lokasi Jemput (GPS)
+                </button>
+                
+                <button onclick="editProfile()" class="btn-primary" style="width: 100%; margin-top: 10px; background: white; color: #0f172a; border: 1px solid #e2e8f0; padding: 12px; border-radius: 12px; font-weight: 700;">
+                    Edit Profil
+                </button>
+
+                <button onclick="logout()" style="width: 100%; margin-top: 20px; background: none; border: none; color: #ef4444; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i data-lucide="log-out" style="width:18px;"></i> Keluar Akun
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="serviceModal" class="service-modal">
+        <div class="service-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h3 id="modalLaundryName" style="margin: 0; font-size: 18px;">Nama Laundry</h3>
+                    <small id="modalLaundryAddr" style="color: #64748b;">Alamat Laundry</small>
+                </div>
+                <button onclick="closeServiceModal()" style="background: #f1f5f9; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 20px;">&times;</button>
+            </div>
+            
+            <label style="font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 10px; display: block;">Pilih Layanan:</label>
+            <div id="serviceOptions"></div>
+            
+            <div style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <label style="font-size: 12px; font-weight: 700; color: #64748b;">Estimasi Berat Cucian (Kg)</label>
+                <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+                    <input type="number" id="estWeight" value="1" min="1" oninput="updateEstimation()" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                </div>
+            </div>
+
+            <div class="est-box">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 5px;">
+                    <span>Estimasi Jasa:</span>
+                    <span id="labelEstJasa">Rp 0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 8px;">
+                    <span>Ongkir (PP):</span>
+                    <span>Rp 10.000</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 800; color: #0ea5e9; border-top: 1px dashed #cbd5e1; pt-8 mt-5; padding-top: 8px;">
+                    <span>Total Estimasi:</span>
+                    <span id="labelEstTotal">Rp 10.000</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <label style="font-size: 12px; font-weight: 700; color: #64748b;">Metode Pembayaran:</label>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <div class="payment-option active">💵 Tunai (Cash)</div>
+                    <div class="payment-option disabled">💳 Saldo (Soon)</div>
+                </div>
+            </div>
+            
+            <button id="btnOrder" class="btn-primary" style="width: 100%; margin-top: 25px; padding: 15px; border-radius: 15px; background: #0ea5e9; color: white; border: none; font-weight: 800; font-size: 16px;">
+                Pesan Sekarang
+            </button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="switchPage('home', this)">
+            <i data-lucide="home"></i>
+            <span>Beranda</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('orders', this)">
+            <i data-lucide="shopping-bag"></i>
+            <span>Order</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('profile', this)">
+            <i data-lucide="user"></i>
+            <span>Profil</span>
+        </div>
+    </nav>
+
+    <script type="module" src="customer.js"></script>
+    <script>
+        window.switchPage = (pageId, el) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            el.classList.add('active');
+            if (window.lucide) lucide.createIcons();
+        };
+
+        window.closeServiceModal = () => {
+            document.getElementById('serviceModal').style.display = 'none';
+        };
+    </script>
+</body>
+          </html>
