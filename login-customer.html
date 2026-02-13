@@ -76,7 +76,7 @@
             Swal.fire({ title: 'Mohon Tunggu...', didOpen: () => Swal.showLoading() });
             try {
                 await signInWithEmailAndPassword(auth, e, p);
-                window.location.href = "customer.html";
+                window.location.href = "index.html";
             } catch (err) { 
                 Swal.fire("Gagal Masuk", "Email atau password salah", "error"); 
             }
